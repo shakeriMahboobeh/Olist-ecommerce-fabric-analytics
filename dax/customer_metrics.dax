@@ -1,0 +1,33 @@
+// =====================================================================
+// Customer Metrics
+// =====================================================================
+
+Total Customers =
+DISTINCTCOUNT(FactOrderItems[CustomerKey])
+
+Average Review Score =
+AVERAGE(FactOrderItems[ReviewScore])
+
+Reviewed Items =
+// Filter-context fix: KEEPFILTERS ensures this ADDS to the visual's
+// existing filter context instead of overriding it — without it, this
+// measure returns identical values across every ReviewScore category
+// when ReviewScore is also on the chart axis.
+CALCULATE(
+    COUNTROWS(FactOrderItems),
+    KEEPFILTERS(NOT ISBLANK(FactOrderItems[ReviewScore]))
+)
+
+Reviewed and Delivered Items =
+CALCULATE(
+    COUNTROWS(FactOrderItems),
+    KEEPFILTERS(NOT ISBLANK(FactOrderItems[ReviewScore]) && NOT ISBLANK(FactOrderItems[DeliveryDays]))
+)
+
+Review Score Percentage =
+// Share of sold items that received a review, evaluated against the
+// full (unfiltered by review score) item count.
+DIVIDE(
+    [Reviewed Items],
+    CALCULATE([Total Items Sold], ALL(FactOrderItems[ReviewScore]), FactOrderItems[ReviewScore] <> BLANK())
+)

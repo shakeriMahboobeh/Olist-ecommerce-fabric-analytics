@@ -1,0 +1,47 @@
+// =====================================================================
+// Logistics Metrics
+// =====================================================================
+
+Average Delivery Days =
+AVERAGE(FactOrderItems[DeliveryDays])
+
+Late Delivery Rate =
+// Scoped to delivered orders only — undelivered orders have no
+// meaningful "late" status yet, so they're excluded from both sides
+// of the ratio.
+DIVIDE(
+    CALCULATE(COUNTROWS(FactOrderItems), FactOrderItems[IsLateDelivery] = 1),
+    CALCULATE(COUNTROWS(FactOrderItems), FactOrderItems[IsDelivered] = 1)
+)
+
+On-Time Delivery Rate =
+// Complement of Late Delivery Rate, inheriting the same
+// delivered-orders-only scope.
+1 - [Late Delivery Rate]
+
+Freight Ratio =
+// Freight's share of total order value (item price + freight).
+DIVIDE(
+    SUM(FactOrderItems[FreightValue]),
+    SUM(FactOrderItems[Price]) + SUM(FactOrderItems[FreightValue])
+)
+
+Delivered Items =
+// Items with a recorded delivery date. Deliberately checks
+// DeliveryDays rather than the IsDelivered flag — see Total Delivered
+// below for the flag-based version and how the two can diverge
+// (StatusDateMismatch orders: status = 'delivered' but no delivery date).
+CALCULATE(
+    COUNTROWS(FactOrderItems),
+    KEEPFILTERS(NOT ISBLANK(FactOrderItems[DeliveryDays]))
+)
+
+Total Delivered =
+// Flag-based version of "delivered," using the IsDelivered column
+// computed in Gold rather than checking DeliveryDays directly.
+CALCULATE(COUNTROWS(FactOrderItems), FactOrderItems[IsDelivered] = 1)
+
+Avg Estimate Accuracy Days =
+// Average of (estimated delivery date - actual delivery date); a
+// positive value means deliveries arrived earlier than estimated.
+AVERAGE(FactOrderItems[EstimateAccuracyDays])

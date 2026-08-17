@@ -1,0 +1,42 @@
+// =====================================================================
+// Sales Metrics
+// =====================================================================
+
+Total Revenue =
+SUM(FactOrderItems[Price])
+
+Total Orders =
+// Distinct order count, not a row count — the fact table grain is
+// "sold item," so a plain COUNTROWS would overcount orders with
+// multiple items.
+DISTINCTCOUNT(FactOrderItems[OrderId])
+
+Average Order Value =
+DIVIDE([Total Revenue], [Total Orders])
+
+Total Items Sold =
+// Fact table grain is "sold item," so a plain row count gives items
+// sold, not orders.
+COUNTROWS(FactOrderItems)
+
+Average Item Price =
+AVERAGE(FactOrderItems[Price])
+
+Top Seller City =
+// Finds the city with the highest revenue, then title-cases it for
+// display (source data is lowercase after Silver-layer normalization).
+VAR CityName =
+    CALCULATE(
+        SELECTEDVALUE(DimSeller[SellerCity]),
+        TOPN(1, ALL(DimSeller[SellerCity]), CALCULATE([Total Revenue]), DESC)
+    )
+RETURN
+    UPPER(LEFT(CityName, 1)) & LOWER(MID(CityName, 2, 100))
+
+Top Seller City Revenue =
+// Companion measure to Top Seller City — recomputes that city's revenue
+// for the KPI card shown alongside it.
+CALCULATE(
+    [Total Revenue],
+    TOPN(1, ALL(DimSeller[SellerCity]), CALCULATE([Total Revenue]), DESC)
+)
