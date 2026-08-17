@@ -114,11 +114,11 @@ Payments went through three modeling iterations before landing on the final desi
 
 ## ⚡ DAX & Direct Lake Engineering Highlights
 
-**Direct Lake constraint — no calculated columns.** Direct Lake models only support measures, not DAX-calculated columns. Fields needed for sorting/grouping (e.g. `DayOfMonth`, `BucketSortOrder`) had to be pushed back into the source layer (PySpark notebook or Gold SQL) instead of the semantic model.
+**Direct Lake constraint — no calculated columns. Direct Lake models only support measures, not DAX-calculated columns. Fields needed for sorting/grouping (e.g. DayOfMonth, BucketSortOrder) had to be pushed back into the source layer (PySpark notebook or Gold SQL) instead of the semantic model.
 
-**Filter context conflict, solved with `KEEPFILTERS()`:**
+Filter context conflict, solved with KEEPFILTERS():
 
-```dax
+dax
 // This measure broke — identical values across all ReviewScore categories —
 // because the CALCULATE filter conflicted with the chart's own axis filter
 // on the same column.
@@ -128,17 +128,16 @@ CALCULATE(
     NOT ISBLANK(FactOrderItems[ReviewScore])
 )
 
-// Fixed: KEEPFILTERS as a standalone top-level CALCULATE argument
-// ensures the internal filter *adds to* rather than *overrides*
-// the chart's existing filter context.
+// Fixed: wrapping the filter in KEEPFILTERS as a standalone top-level
+// CALCULATE argument ensures it *adds to* rather than *overrides* the
+// chart's existing filter context.
 Reviewed Items =
 CALCULATE(
     COUNTROWS(FactOrderItems),
-    KEEPFILTERS(FactOrderItems[ReviewScore] <> BLANK())
+    KEEPFILTERS(NOT ISBLANK(FactOrderItems[ReviewScore]))
 )
-```
 
-See `dax/` for the full measure library (Late Delivery Rate, Top Seller City, and more), organized by business domain.
+See dax/ for the full measure library (Total Revenue, Late Delivery Rate, Top Seller City, Reviewed Items, and more), organized by business domain: sales_metrics.dax, logistics_metrics.dax, customer_metrics.dax.
 
 ## 🔁 Pipeline Automation & Data Quality Gates
 
@@ -152,22 +151,30 @@ See `sql/03_data_quality_gates.sql` for the full check suite.
 
 ```
 ├── docs/
-│   └── dashboards/          # Dashboard screenshots referenced in this README
+│   ├── architecture/         # Semantic model + pipeline screenshots
+│   │   ├── data_model.png
+│   │   └── pipeline.png
+│   └── dashboards/           # Dashboard screenshots
 │       ├── executive_summary.png
 │       ├── sales_dashboard.png
 │       ├── logistics_dashboard.png
 │       └── customer_dashboard.png
-├── dax/                     # DAX measures, organized by business domain
+├── dax/                       # DAX measures, organized by business domain
 │   ├── customer_metrics.dax
 │   ├── logistics_metrics.dax
 │   └── sales_metrics.dax
-├── notebooks/               # Fabric PySpark notebooks (Bronze/Silver)
-├── sql/                     # Gold layer schema + data quality checks
-│   ├── 01_gold_dimensions.sql
-│   ├── 02_gold_facts.sql
-│   └── 03_data_quality_gates.sql
-├── README.md
-└── PROJECT_SUMMARY.pdf      # Full write-up + interview Q&A
+├── notebooks/                 # Fabric PySpark notebooks (Bronze/Silver)
+│   ├── nb_bronze_ingestion.ipynb
+│   ├── nb_silver_orders.ipynb
+│   ├── nb_silver_customers_geolocation.ipynb
+│   ├── nb_silver_products.ipynb
+│   ├── nb_silver_reviews_payments.ipynb
+│   └── nb_gold_dim_date.ipynb
+├── sql/                        # Gold layer schema + data quality checks
+│   ├── DWH-Dimensions.sql
+│   ├── DWH-Fact.sql
+│   └── DWH-DataQualityChecks.sql
+└── README.md
 ```
 
 ## 🔑 Key Takeaways
